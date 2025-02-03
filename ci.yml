@@ -1,0 +1,39 @@
+# ci.yml
+
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Build Docker image
+        run: |
+          docker build -t my-django-app .
+
+      - name: Deploy to Google Cloud (Cloud Run)
+        run: |
+          gcloud auth activate-service-account --key-file=${{ secrets.GCP_KEY }}
+          gcloud config set project ${{ secrets.GCP_PROJECT }}
+          gcloud run deploy my-django-app \
+            --image=gcr.io/${{ secrets.GCP_PROJECT }}/my-django-app:latest \
+            --platform managed \
+            --region us-central1 \
+            --allow-unauthenticated
